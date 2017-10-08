@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>XLSTable Vue</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.4.4/dist/vue.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/at-ui-style@1.3.2/css/at.min.css">
+    <script src="javascripts/at.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js"></script>
+    <script src="xlsx.full.min.js"></script>
+    <style type="text/css">
+      .table-tav{
+        padding-top: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="notification"></div>
+    <div id="app2" class="container-fluid table-tav">
+      <at-table :columns='columns' :data='alumnos' stripe='true' pagination height=800></at-table>
+    </div>
+    
+
+  <script type="text/javascript">   
+
+    var dataTable, columnName;
+    var columnNameArr = Array();
+
+    function async1() {
+      return new Promise(
+          function (resolve, reject) {
+            new Vue({
+              el: '#notification'
+          })
+          Vue.prototype.$Message.loading({
+                message: 'Espere un momento los datos se estan cargando, no actualice el navegador.',
+                duration: 0
+              })
+
+          setTimeout(function(){ 
+            resolve();
+          }, 3000);
+          
+          });
+    }
+
+
+    function async2() {
+      return new Promise(
+          function (resolve, reject) {
+              var url = "simple.xls";
+              var oReq = new XMLHttpRequest();
+              oReq.open("GET", url, true);
+              oReq.responseType = "arraybuffer";
+
+              oReq.onload = function(e) {
+                var arraybuffer = oReq.response;
+
+                /* convert data to binary string */
+                var data = new Uint8Array(arraybuffer);
+                var arr = new Array();
+                for(var i = 0; i != data.length; ++i) arr[i] = String.fromCharCode(data[i]);
+                var bstr = arr.join("");
+
+                /* Call XLSX */
+                var workbook = XLSX.read(bstr, {type:"binary"});
+
+                /* DO SOMETHING WITH workbook HERE */
+                var first_sheet_name = workbook.SheetNames[0];
+                /* Get worksheet */
+                var worksheet = workbook.Sheets[first_sheet_name];
+                dataTable = XLSX.utils.sheet_to_json(worksheet,{raw:true});
+                columnName = Object.keys(dataTable[0]);
+
+                columnName.forEach(function(element) {
+                  var columnn = {
+                    title: element,
+                    key: element
+                  }
+                  columnNameArr.push(columnn)
+                });
+                // console.log(dataTable);
+                resolve();
+              }
+
+              oReq.send();
+          });
+    }
+
+    function async3() {
+      return new Promise(
+          function (resolve, reject) {
+            Vue.prototype.$Message.closeAll();
+
+            var columnas = [
+              {
+                title: 'Numero',
+                key: 'Numero'
+              },
+              {
+                title: 'Nombre',
+                key: 'Nombre'
+              },
+              {
+                title: 'Apellido',
+                key: 'Apellido'
+              },{
+                title: 'Imagen',
+                key: 'Imagen',
+                type: 'img'
+              },
+              // {
+              //   title: 'Img',
+              //   render: (h, params) => {
+              //     console.log(params.item.Imagen);
+              //     return h('AtImg', {
+              //       props:{
+              //         src: 'https://pbs.twimg.com/profile_images/875996174305472512/upM71pVR.jpg'
+              //       }
+              //     }, '<h1>hola</h1>')
+              //   }
+              // }
+            ]
+
+
+     
+            new Vue({
+              el: '#app2',
+              data: {
+                columns: columnas,
+                alumnos: dataTable
+              }
+            })
+            resolve();
+          });
+    }
+
+    function async4() {
+      return new Promise(
+          function (resolve, reject) {
+            Vue.prototype.$Notify({
+              title: 'Pagina cargada',
+              message: 'Se han cargado '+numeral(dataTable.length).format()+' registros satisfactoriamente',
+              type: 'success',
+              duration: 0
+            })
+            resolve();
+          });
+    }
+
+
+    async1().then(result=>{
+      async2().then(result=>{
+        async3().then(result=>{
+          async4().then(result=>{
+          })
+        })
+      })
+    })
+
+
+  </script>
+</body>
+</html>
